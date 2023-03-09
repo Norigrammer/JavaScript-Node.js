@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>俺の和訳</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/send_url.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <%- include('header'); %>
+    <p>俺の和訳</p>
+    <main>
+      <ul class="list">
+        <% articles.forEach((article) => { %>
+        <li>
+          <% if (article.category === 'limited') {%>
+            <i>会員限定</i>
+          <% } %>
+          <h2><%= article.title %></h2>
+          <p><%= article.summary %></p>
+          <a href="/article/<%= article.id %>">和訳をみる</a>
+        </li>
+        <% }) %>
+      </ul>
+    </main>
+  </body>
+</html>

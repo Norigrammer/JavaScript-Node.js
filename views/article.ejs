@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>俺の和訳</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/send_url.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <%- include('header'); %>
+    <main>
+      <div class="article">
+        <% if (article.category === 'all') { %>
+          <h1><%= article.title %></h1>
+          <p><%= article.content %></p>
+        <% } %>
+        <% if (article.category === 'limited') { %>
+          <i>会員限定</i>
+          <h1><%= article.title %></h1>
+          <% if (locals.isLoggedIn) { %>
+            <p><%= article.content %></p>
+          <% } else { %>
+            <div class="article-login">
+              <p>会員限定記事です</p>
+              <p>記事の続きは、<br>ログインすると読むことができます。</p>
+              <a class="btn-limited" href="/login">ログインする</a>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
+    </main>
+    <footer>
+      <a class="btn sub" href="/list">記事一覧にもどる</a>
+    </footer>
+  </body>
+</html>
