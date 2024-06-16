@@ -8,7 +8,7 @@
 ## 使用技術
 - プログラミング言語 : HTML, CSS, JavaScript(ES6)<br>
 - フレームワーク : Node.js(16.17.1)<br>
-- インフラストラクチャ― : Google Cloud(SQL, App Engine)
+- インフラストラクチャ― : Google Cloud Platform(App Engine, SQL)
 ## 構成図
 ![俺の和訳 - 構成図](https://user-images.githubusercontent.com/117279567/222990391-103c73ca-c202-45cf-adaa-d936a7ce4613.jpg)
 ## データベース設計
