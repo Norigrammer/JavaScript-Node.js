@@ -6,9 +6,9 @@
 ヘッダーから新規登録していただくとログインができるようになります。<br>
 サインアウトすると限定記事が見えなくなります。
 ## 使用技術
-- プログラミング言語 : HTML, CSS, JavaScript(ES6)<br>
-- フレームワーク : Node.js(16.17.1)<br>
-- インフラストラクチャ― : Google Cloud Platform(App Engine, SQL)
+- プログラミング言語 : HTML, CSS, JavaScript (ES6)<br>
+- フレームワーク : Node.js (16.17.1)<br>
+- インフラストラクチャ― : Google Cloud Platform (App Engine, Cloud SQL - MySQL)
 ## 構成図
 ![俺の和訳 - 構成図](https://user-images.githubusercontent.com/117279567/222990391-103c73ca-c202-45cf-adaa-d936a7ce4613.jpg)
 ## データベース設計
