@@ -1,40 +1,56 @@
+'use strict';
 const express = require('express');
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const session = require('express-session');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const app = express();
 
 require('dotenv').config();
 
+// 静的ファイルとテンプレートエンジン設定
 app.use(express.static('public'));
+app.set('view engine', 'ejs');
+app.set('views', __dirname + '/views');
 app.use(express.urlencoded({extended: false}));
 
 const connection = process.env.NODE_ENV === 'production'
   ? mysql.createConnection({
-    user: process.env.DB_USER, 
-    password: process.env.DB_PASSWORD, 
-    database: process.env.DB_NAME, 
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
     socketPath: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
   }) : mysql.createConnection({
-    user: process.env.DB_USER, 
-    password: process.env.DB_PASSWORD, 
-    database: process.env.DB_NAME, 
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
     host: 'localhost'
-});
+  });
+// mysql2は初回クエリ時に接続を確立するため、起動時connectは行わない
 
-connection.connect((err) => {
-  if (err) {
-    console.log('error connecting: ' + err.stack);
-    return;
+// セッション設定（SESSION_SECRET を使用）
+const isProduction = process.env.NODE_ENV === 'production';
+let sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  if (isProduction) {
+    console.error('SESSION_SECRET が未設定です。環境変数で設定してください。');
+    process.exit(1);
+  } else {
+    console.warn('SESSION_SECRET が未設定です。開発用の暫定値を使用します。');
+    sessionSecret = 'dev_insecure_secret_change_me';
   }
-  console.log('success');
-});
+}
 
 app.use(
   session({
-    secret: 'my_secret_key',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProduction, // HTTPS 環境のみセキュアクッキー
+      maxAge: 1000 * 60 * 60 * 24 * 7 // 7日
+    }
   })
 );
 
@@ -217,4 +233,7 @@ app.get('/logout',(req, res) => {
   });
 });
 
-app.listen( process.env.PORT ?? 3000 );
+const port = process.env.PORT ?? 3000;
+app.listen(port, () => {
+  console.log(`[server] listening on port ${port} (NODE_ENV=${process.env.NODE_ENV || 'development'})`);
+});
