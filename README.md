@@ -1,7 +1,11 @@
 # 音楽和訳掲載サイト（名称：俺の和訳）
+
 英語で作詞された音楽を10年以上聴き続けた「俺」が手掛ける音楽和訳掲載サイトです。<br>
 メールアドレスでサインアップするとどこにも載っていない和訳の記事を見ることができます。<br>
-詳しくは[こちら](https://across-the-language.uw.r.appspot.com/)をクリックしてください。
+~~詳しくは[こちら](https://across-the-language.uw.r.appspot.com/)をクリックしてください。~~ （2025年現在は封鎖中）
+
+参考画像: 俺の和訳 - トップページ
+<img width="1905" height="1162" alt="俺の和訳_トップページ" src="https://github.com/user-attachments/assets/9a61cc4b-dc6a-499d-9022-e9f66410eb9c" />
 
 ## 使用方法
 ヘッダーから新規登録していただくとログインができるようになります。<br>
