@@ -13,18 +13,26 @@ app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 app.use(express.urlencoded({extended: false}));
 
-const connection = process.env.NODE_ENV === 'production'
-  ? mysql.createConnection({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    socketPath: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
-  }) : mysql.createConnection({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: 'localhost'
+// DB接続は必要なルートで都度作成（遅延）し、DB未起動でもサーバが落ちないようにする
+function createDbConnection() {
+  const conn = process.env.NODE_ENV === 'production'
+    ? mysql.createConnection({
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        socketPath: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
+      })
+    : mysql.createConnection({
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        host: 'localhost'
+      });
+  conn.on('error', (err) => {
+    console.error('[mysql] connection error:', err);
   });
+  return conn;
+}
 // mysql2は初回クエリ時に接続を確立するため、起動時connectは行わない
 
 // セッション設定（SESSION_SECRET を使用）
@@ -70,23 +78,27 @@ app.get('/', (req, res) => {
 });
 
 app.get('/list', (req, res) => {
-  connection.query(
-    'SELECT * FROM articles',
-    (error, results) => {
-      res.render('list.ejs', { articles: results });
+  const connection = createDbConnection();
+  connection.query('SELECT * FROM articles', (error, results) => {
+    if (error) {
+      console.error('[mysql] /list query error:', error);
+      return res.status(503).render('list.ejs', { articles: [] });
     }
-  );
+    res.render('list.ejs', { articles: results });
+  });
+  // コネクションはmysql2が初回クエリ時に開くため、簡便のためcloseは省略（プロセス終了で解放）
 });
 
 app.get('/article/:id', (req, res) => {
   const id = req.params.id;
-  connection.query(
-    'SELECT * FROM articles WHERE id = ?',
-    [id],
-    (error, results) => {
-      res.render('article.ejs', { article: results[0] });
+  const connection = createDbConnection();
+  connection.query('SELECT * FROM articles WHERE id = ?', [id], (error, results) => {
+    if (error) {
+      console.error('[mysql] /article query error:', error);
+      return res.status(503).render('article.ejs', { article: {} });
     }
-  );
+    res.render('article.ejs', { article: results[0] });
+  });
 });
 
 app.get('/signup', (req, res) => {
@@ -121,10 +133,16 @@ app.post('/signup',
     console.log('ユーザー名の重複チェック');
     const username = req.body.username;
     const errors = [];
+    const connection = createDbConnection();
     connection.query(
       'SELECT * FROM users WHERE username = ?',
       [username],
       (error, results) => {
+        if (error) {
+          console.error('[mysql] duplicate username check error:', error);
+          errors.push('現在、登録処理を行えません（DBエラー）');
+          return res.render('signup.ejs', { errors });
+        }
         if (results.length > 0) {
           errors.push('すでに登録されているユーザー名です');
           res.render('signup.ejs', { errors: errors });
@@ -139,10 +157,16 @@ app.post('/signup',
     console.log('メールアドレスの重複チェック');
     const email = req.body.email;
     const errors = [];
+    const connection = createDbConnection();
     connection.query(
       'SELECT * FROM users WHERE email = ?',
       [email],
       (error, results) => {
+        if (error) {
+          console.error('[mysql] duplicate email check error:', error);
+          errors.push('現在、登録処理を行えません（DBエラー）');
+          return res.render('signup.ejs', { errors });
+        }
         if (results.length > 0) {
           errors.push('すでに登録されているメールアドレスです');
           res.render('signup.ejs', { errors: errors });
@@ -159,10 +183,15 @@ app.post('/signup',
     const email = req.body.email;
     const password = req.body.password;
     bcrypt.hash(password, 10, (error, hash) => {
+      const connection = createDbConnection();
       connection.query(
         'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
         [username, email, hash],
         (error, results) => {
+          if (error) {
+            console.error('[mysql] signup insert error:', error);
+            return res.status(503).render('signup.ejs', { errors: ['現在、登録処理を行えません（DBエラー）'] });
+          }
           req.session.userId = results.insertId;
           req.session.username = username;
           res.redirect('/list');
@@ -200,10 +229,15 @@ app.post('/login',
     console.log('ログイン');
     const email = req.body.email;
     const errors = [];
+    const connection = createDbConnection();
     connection.query(
       'SELECT * FROM users WHERE email = ?',
       [email],
       (error, results) => {
+        if (error) {
+          console.error('[mysql] login select error:', error);
+          return res.status(503).render('login.ejs', { errors: ['現在、ログイン処理を行えません（DBエラー）'] });
+        }
         if (results.length > 0) {
           const plain = req.body.password
           const hash = results[0].password
