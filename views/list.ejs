@@ -15,7 +15,8 @@
     <p>俺の和訳</p>
     <main>
       <ul class="list">
-        <% articles.forEach((article) => { %>
+        <% const _articles = Array.isArray(articles) ? articles : []; %>
+        <% _articles.forEach((article) => { %>
         <li>
           <% if (article.category === 'limited') {%>
             <i>会員限定</i>
