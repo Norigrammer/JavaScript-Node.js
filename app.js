@@ -1,13 +1,18 @@
 'use strict';
+// ------------------------------
+// アプリ基本セットアップ
+// ------------------------------
 const express = require('express');
 const mysql = require('mysql2');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const app = express();
 
+// .env を読み込む（開発環境で利用）
 require('dotenv').config();
 
 // 開発時にDBなしで表示確認するためのモックモード
+// 本番（production）では常に無効化
 const useMock = process.env.USE_MOCK_DATA === 'true' && process.env.NODE_ENV !== 'production';
 const mockArticles = [
   {
@@ -26,13 +31,22 @@ const mockArticles = [
   }
 ];
 
+// ------------------------------
 // 静的ファイルとテンプレートエンジン設定
+// ------------------------------
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 app.use(express.urlencoded({extended: false}));
 
-// DB接続は必要なルートで都度作成（遅延）し、DB未起動でもサーバが落ちないようにする
+// ------------------------------
+// DB 接続ヘルパー（遅延接続）
+// ------------------------------
+/**
+ * MySQLコネクションを作成して返す（必要時に都度呼び出し）
+ * - production: Cloud SQL Unix Socket を想定（INSTANCE_CONNECTION_NAME 必須）
+ * - development: TCP接続（デフォルトは localhost）。DB_HOST があれば優先
+ */
 function createDbConnection() {
   const conn = process.env.NODE_ENV === 'production'
     ? mysql.createConnection({
@@ -45,7 +59,7 @@ function createDbConnection() {
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
-        host: 'localhost'
+        host: process.env.DB_HOST || 'localhost'
       });
   conn.on('error', (err) => {
     console.error('[mysql] connection error:', err);
@@ -54,7 +68,9 @@ function createDbConnection() {
 }
 // mysql2は初回クエリ時に接続を確立するため、起動時connectは行わない
 
+// ------------------------------
 // セッション設定（SESSION_SECRET を使用）
+// ------------------------------
 const isProduction = process.env.NODE_ENV === 'production';
 let sessionSecret = process.env.SESSION_SECRET;
 if (!sessionSecret) {
@@ -81,6 +97,7 @@ app.use(
   })
 );
 
+// ログイン状態を EJS 側で使いやすいように locals に橋渡し
 app.use((req, res, next) => {
   if (req.session.userId === undefined) {
     res.locals.username = 'ゲスト';
@@ -92,6 +109,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// ------------------------------
+// ルート定義
+// ------------------------------
 app.get('/', (req, res) => {
   res.render('top.ejs');
 });
@@ -311,6 +331,14 @@ app.get('/logout',(req, res) => {
   });
 });
 
+// 簡易ヘルスチェック（監視・疎通確認用）
+app.get('/healthz', (req, res) => {
+  res.type('text/plain').send('ok');
+});
+
+// ------------------------------
+// サーバ起動
+// ------------------------------
 const port = process.env.PORT ?? 3000;
 app.listen(port, () => {
   console.log(`[server] listening on port ${port} (NODE_ENV=${process.env.NODE_ENV || 'development'})`);
