@@ -7,6 +7,25 @@ const app = express();
 
 require('dotenv').config();
 
+// 開発時にDBなしで表示確認するためのモックモード
+const useMock = process.env.USE_MOCK_DATA === 'true' && process.env.NODE_ENV !== 'production';
+const mockArticles = [
+  {
+    id: 1,
+    title: 'サンプル記事（全体公開）',
+    summary: 'これはモックのサマリーです。全体公開で誰でも見られます。',
+    content: 'モックデータの本文です。DBが無くても表示確認できます。',
+    category: 'all'
+  },
+  {
+    id: 2,
+    title: 'サンプル記事（会員限定）',
+    summary: 'モックによる会員限定記事のプレビュー。',
+    content: '会員限定の本文です。ログイン状態でのみ表示されます。',
+    category: 'limited'
+  }
+];
+
 // 静的ファイルとテンプレートエンジン設定
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
@@ -78,19 +97,28 @@ app.get('/', (req, res) => {
 });
 
 app.get('/list', (req, res) => {
+  const renderList = (items) => res.render('list.ejs', { articles: Array.isArray(items) ? items : [] });
+  if (useMock) {
+    return renderList(mockArticles);
+  }
   const connection = createDbConnection();
   connection.query('SELECT * FROM articles', (error, results) => {
     if (error) {
       console.error('[mysql] /list query error:', error);
-      return res.status(503).render('list.ejs', { articles: [] });
+      res.status(503);
+      return renderList([]);
     }
-    res.render('list.ejs', { articles: results });
+    return renderList(results);
   });
   // コネクションはmysql2が初回クエリ時に開くため、簡便のためcloseは省略（プロセス終了で解放）
 });
 
 app.get('/article/:id', (req, res) => {
   const id = req.params.id;
+  if (useMock) {
+    const article = mockArticles.find(a => String(a.id) === String(id));
+    return res.render('article.ejs', { article: article || {} });
+  }
   const connection = createDbConnection();
   connection.query('SELECT * FROM articles WHERE id = ?', [id], (error, results) => {
     if (error) {
@@ -133,6 +161,9 @@ app.post('/signup',
     console.log('ユーザー名の重複チェック');
     const username = req.body.username;
     const errors = [];
+    if (useMock) {
+      return next();
+    }
     const connection = createDbConnection();
     connection.query(
       'SELECT * FROM users WHERE username = ?',
@@ -157,6 +188,9 @@ app.post('/signup',
     console.log('メールアドレスの重複チェック');
     const email = req.body.email;
     const errors = [];
+    if (useMock) {
+      return next();
+    }
     const connection = createDbConnection();
     connection.query(
       'SELECT * FROM users WHERE email = ?',
@@ -183,6 +217,11 @@ app.post('/signup',
     const email = req.body.email;
     const password = req.body.password;
     bcrypt.hash(password, 10, (error, hash) => {
+      if (useMock) {
+        req.session.userId = 9999;
+        req.session.username = username;
+        return res.redirect('/list');
+      }
       const connection = createDbConnection();
       connection.query(
         'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
@@ -229,6 +268,11 @@ app.post('/login',
     console.log('ログイン');
     const email = req.body.email;
     const errors = [];
+    if (useMock) {
+      req.session.userId = 1;
+      req.session.username = 'mockuser';
+      return res.redirect('/list');
+    }
     const connection = createDbConnection();
     connection.query(
       'SELECT * FROM users WHERE email = ?',
