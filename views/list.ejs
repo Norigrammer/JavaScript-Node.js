@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>俺の和訳</title>
     <link rel="stylesheet" href="/css/style.css">
-    <script src="/send_url.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
@@ -15,6 +14,7 @@
     <p>俺の和訳</p>
     <main>
       <ul class="list">
+        <!-- articles: サーバから渡される記事配列。DB結果 or モック配列。配列でない場合に備えガードする -->
         <% const _articles = Array.isArray(articles) ? articles : []; %>
         <% _articles.forEach((article) => { %>
         <li>
